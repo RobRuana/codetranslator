@@ -49,14 +49,14 @@ func generate_output():
 		var err = generator.connect("warning_generated", self, "warn")
 		assert(err == OK) # Fix the signal above
 		output = generator.generate_csharp(source)
-	
+
 	if $Controls/Docs.pressed:
 		output = "[codeblocks]\n[gdscript]\n%s\n[/gdscript]\n[csharp]\n%s\n[/csharp]\n[/codeblocks]" % \
 			[source, output]
-	
+
 	if $Controls/EscapeXML.pressed:
 		output = escape_xml(output)
-	
+
 	var tabs := int($Controls/Indention.value)
 	if tabs > 0:
 		var tabbed_output := ""

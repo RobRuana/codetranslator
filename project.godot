@@ -9,6 +9,11 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Control",
+"class": "BulkTranslator",
+"language": "GDScript",
+"path": "res://BulkTranslator.gd"
+}, {
 "base": "Node",
 "class": "CsharpGenerator",
 "language": "GDScript",
@@ -33,21 +38,36 @@ _global_script_classes=[ {
 "class": "Utility",
 "language": "GDScript",
 "path": "res://Utility.gd"
+}, {
+"base": "Object",
+"class": "WarningInfo",
+"language": "GDScript",
+"path": "res://WarningInfo.gd"
 } ]
 _global_script_class_icons={
+"BulkTranslator": "",
 "CsharpGenerator": "",
 "Detector": "",
 "Parser": "",
 "Translator": "",
-"Utility": ""
+"Utility": "",
+"WarningInfo": ""
 }
 
 [application]
 
 config/name="Codetranslator"
-run/main_scene="res://Translator.tscn"
+run/main_scene="res://BulkTranslator.tscn"
 run/low_processor_mode=true
 config/icon="res://icon.png"
+
+[autoload]
+
+FileSystem="*res://FileSystem.gd"
+
+[mono]
+
+project/assembly_name="Codetranslator"
 
 [rendering]
 

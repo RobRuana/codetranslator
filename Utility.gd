@@ -16,7 +16,7 @@ const VIRTUAL_FUNCTIONS = [
 	"_get_property_list",
 	"_notification",
 	"_to_string",
-	
+
 	# Node
 	"_ready",
 	"_process",
@@ -27,13 +27,13 @@ const VIRTUAL_FUNCTIONS = [
 	"_enter_tree",
 	"_exit_tree",
 	"_get_configuration_warning",
-	
+
 	# Control
 	"_clips_input",
 	"_get_minimum_size",
 	"_gui_input",
 	"_make_custom_tooltip",
-	
+
 ]
 
 
@@ -85,27 +85,85 @@ const BITWISE_OPERATORS = [
 ## Contains all method remaps (i.e. for methods using a namespace)
 const REMAP_METHODS = {
 	"assert": "Debug.Assert",
-	"print": "GD.Print",
-	"prints": "GD.PrintS",
-	"printt": "GD.PrintT",
+
+	"bytes2var": "GD.Bytes2Var",
+	"convert": "GD.Convert",
+	"db2linear": "GD.Db2Linear",
+	"funcref": "GD.FuncRef",
+	"hash": "GD.Hash",
+	"instance_from_id": "GD.InstanceFromId",
+	"linear2db": "GD.Linear2Db",
 	"load": "GD.Load",
 	"preload": "GD.Load",
+	"push_error": "GD.PushError",
+	"push_warning": "GD.PushWarning",
+	"print": "GD.Print",
+	"print_stack": "GD.PrintStack",
+	"print_err": "GD.PrintErr",
+	"print_raw": "GD.PrintRaw",
+	"prints": "GD.PrintS",
+	"printt": "GD.PrintT",
+	"randf": "GD.Randf",
+	"randi": "GD.Randi",
+	"randomize": "GD.Randomize",
+	"rand_range": "GD.RandRange",
+	"rand_seed": "GD.RandSeed",
+	"range": "GD.Range",
+	"seed": "GD.Seed",
+	"str": "GD.Str",
+	"str2var": "GD.Str2Var",
+	"type_exists": "GD.TypeExists",
+	"var2bytes": "GD.Var2Bytes",
+	"var2str": "GD.Var2Str",
+
+	"ord": "char.GetNumericValue",
 	"abs": "Mathf.Abs",
 	"acos": "Mathf.Acos",
 	"asin": "Mathf.Asin",
 	"atan": "Mathf.Atan",
 	"atan2": "Mathf.Atan2",
+	"ceil": "Mathf.Ceil",
+	"clamp": "Mathf.Clamp",
+	"cos": "Mathf.Cos",
+	"cosh": "Mathf.Cosh",
+	"deg2rad": "Mathf.Deg2Rad",
+	"ease": "Mathf.Ease",
+	"exp": "Mathf.Exp",
+	"floor": "Mathf.Floor",
+	"inverse_lerp": "Mathf.InverseLerp",
+	"is_equal_approx": "Mathf.IsEqualApprox",
+	"is_inf": "Mathf.IsInf",
+	"is_nan": "Mathf.IsNaN",
+	"is_zero_approx": "Mathf.IsZeroApprox",
+	"lerp": "Mathf.Lerp",
+	"lerp_angle": "Mathf.LerpAngle",
+	"log": "Mathf.Log",
+	"max": "Mathf.Max",
 	"min": "Mathf.Min",
-	"ord": "char.GetNumericValue",
-	"push_error": "GD.PushError",
-	"push_warning": "GD.PushWarning",
+	"move_toward": "Mathf.MoveToward",
+	"posmod": "Mathf.PosMod",
+	"pow": "Mathf.Pow",
+	"rad2deg": "Mathf.Rad2Deg",
+	"range_lerp": "Mathf.RangeLerp",
+	"round": "Mathf.Round",
+	"sign": "Mathf.Sign",
+	"sin": "Mathf.Sin",
+	"sinh": "Mathf.Sinh",
+	"smoothstep": "Mathf.SmoothStep",
+	"sqrt": "Mathf.Sqrt",
+	"stepify": "Mathf.Stepify",
+	"tan": "Mathf.Tan",
+	"tanh": "Mathf.Tanh",
+	"wrap": "Mathf.Wrap",
 }
 
 
 ## Contains all keyword remaps that are parsed as variables
 const REMAP_VARIABLES = {
 	"self": "this",
-	"event": "@event",
+	"event": "evt",
+	"INF": "Mathf.Inf",
+	"PI": "Mathf.Pi",
 }
 
 
@@ -120,7 +178,7 @@ const METHOD_USINGS = {
 ## null -> normal
 ## String -> value is used 1:1 for empty constructor
 ## [String, String] -> 0: type, 1: not empty
-## 
+##
 const BUILTIN_CLASSES = {
 	"String": null,
 	"Vector2": null,
@@ -200,12 +258,12 @@ static func find_not_in_string(string: String, character: String, start_offset :
 
 ## Returns the assignment expression as
 ## [left side, operator, right side]
-static func split_math(string: String) -> Array:
+static func split_binary_math(string: String) -> Array:
 	for op in MATH_OPERATORS:
-		var pos = string.find(op)
+		var pos = string.find(" " + op + " ")
 		if pos != -1:
 			return [string.substr(0, pos).strip_edges(), op, string.substr(pos + op.length())]
-	assert(false) # Here is no math operation to be split
+	assert(false) # There is no math operation to be split
 	return [string, "", ""]
 
 

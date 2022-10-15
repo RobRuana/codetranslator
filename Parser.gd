@@ -139,7 +139,7 @@ static func get_assignment(string: String) -> String:
 
 
 ## Returns the math expression
-static func get_math(string: String) -> Array:
+static func get_math(_string: String) -> Array:
 	assert(false) # Unimplemented
 	return []
 
@@ -207,12 +207,12 @@ static func parse_using(method: String, usings):
 ## Parses ordinary code and tokenizes it
 func parse_statement(line: int, string: String) -> Array:
 	var res := []
-	var i := 0
+	var _i := 0
 	var skip_math := false
 	while !string.empty():
 		string = string.strip_edges()
-		i += 1
-		#print("[%d] " % i, string)
+		_i += 1
+		#print("[%d] " % _i, string)
 		if Detector.is_string(string):
 			res.push_back(["string", string])
 			string = ""
@@ -254,7 +254,7 @@ func parse_statement(line: int, string: String) -> Array:
 			var comma := string.find(",")
 			var elements := []
 			while comma != -1:
-				var debug := string.substr(last_comma, comma - last_comma)
+				var _debug := string.substr(last_comma, comma - last_comma)
 				elements.push_back(parse_statement(line, string.substr(last_comma, comma - last_comma)))
 				last_comma = comma + 1
 				comma = string.find(",", last_comma)
@@ -328,8 +328,8 @@ func parse_statement(line: int, string: String) -> Array:
 		elif Detector.is_is(string):
 			res.push_back(["is", get_isas(string)])
 			string = ""
-		elif !skip_math && Detector.is_math(string):
-			var math = Utility.split_math(string)
+		elif !skip_math && Detector.is_binary_math(string):
+			var math = Utility.split_binary_math(string)
 			var data = ["math", parse_statement(line, math[0]),
 				math[1], parse_statement(line, math[2])]
 			for d in data[1]:

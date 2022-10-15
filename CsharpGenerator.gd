@@ -9,6 +9,7 @@ extends Node
 
 signal warning_generated(line, string)
 
+
 var parser := Parser.new()
 
 
@@ -92,7 +93,7 @@ func convert_constructor(string: String) -> String:
 
 
 ## Converts extends and class_name to a proper class header
-func convert_file_scope_to_cs(line: int, string: String) -> String:
+func convert_file_scope_to_cs(line: int, string: String, external_class_name: String = "") -> String:
 	var lines := string.split("\n", false)
 	var is_tool := false
 	var classname_line := ""
@@ -110,8 +111,8 @@ func convert_file_scope_to_cs(line: int, string: String) -> String:
 			assert(false) # Cached garbage. FIX ME
 	if extends_line.empty() && classname_line.empty():
 		return "" # We don't have a global scope script
-	var cname := "?CLASS_NAME?"
-	if classname_line.empty():
+	var cname := "?CLASS_NAME?" if external_class_name.empty() else external_class_name
+	if classname_line.empty() and external_class_name.empty():
 		warn(line, "C# needs a class name.")
 	else:
 		cname = classname_line.substr(11)
@@ -136,7 +137,7 @@ func convert_statement(line: int, statement: Array, gsv, lsv, usings, place_semi
 	]
 	var result := ""
 	var previous = ""
-	var i := 0
+	var _i := 0
 	for s in statement:
 		match s[0]:
 			"pass":
@@ -193,7 +194,7 @@ func convert_statement(line: int, statement: Array, gsv, lsv, usings, place_semi
 						if j == 2:
 							connect_same_method = part.begins_with("this");
 						elif j == 3 && connect_same_method:
-							part = "nameof(%s)" % Utility._pascal(part.substr(1, part.length() - 2))
+							part = "nameof(%s)" % Utility.pascal(part.substr(1, part.length() - 2))
 					arg_str += part
 					if j < s[2].size():
 						arg_str += ", "
@@ -271,7 +272,7 @@ func convert_statement(line: int, statement: Array, gsv, lsv, usings, place_semi
 			var other:
 				print("type '%s' is unrecognized! Content:" % other, s)
 				warn(line, "type '%s' is unrecognized! This is a Bug and should be reported" % other)
-		i += 1
+		_i += 1
 	if place_semicolon:
 		result += ";"
 	return result
@@ -348,57 +349,71 @@ func parse_declaration(line: int, global_scope: bool, string: String, gsv, lsvi,
 
 
 ## Parses the source code and outputs the resulting C# Code
-func generate_csharp(source: String) -> String:
-	var output := ""
-	var current_line: int = 0
-	var comment := ""
-	var depth = 0
-	var collect_file_scope := true
-	var collected_scope = ""
-	var is_global_scope := false
+func generate_csharp(source: String, external_class_name: String = "") -> String:
+	var output: String = ""
+	var line_number: int = 0
+	var comment: String = ""
+
+	var is_file_scope: bool = true
+	var collected_scope: String = ""
+	var is_global_scope: bool = false
 	var global_scope_vars := {}
 	var local_vars := {0: {}} #contains dict for each indent level, index by indent
 	var usings := [
 		"Godot",
 		"System",
 	]
-	var braces := 0
-	var is_multiline := false
+	var is_multiline: bool = false
+	var braces: int = 0
+	var csharp_indent_current: int = 0
+	var csharp_indent_previous: int = 0
+	var gdscript_indent_current: int = 0
+	var gdscript_indent_previous: int = 0  # warning-ignore: unused_variable
 	source = source.replace("    ", "\t")
+
 	for line in source.split("\n"):
 		var l: String = line.strip_edges()
-		current_line += 1
-		var indent = line.length() - line.strip_edges(true, false).length()
+		line_number += 1
+		var gdscript_indent = line.length() - line.strip_edges(true, false).length()
+		var line_is_blank: bool = Detector.is_comment(l) or l.empty()
+		if not line_is_blank and not is_multiline:
+			gdscript_indent_previous = gdscript_indent_current
+			gdscript_indent_current = gdscript_indent
 
-		if collect_file_scope:
-			if indent != 0:
-				collect_file_scope = false
+		if is_file_scope:
+			if gdscript_indent != 0:
+				is_file_scope = false
 			else:
 				if Detector.is_file_scope(l):
 					collected_scope += l + "\n"
 					continue
-				elif Detector.is_comment(l):
-					pass
-				elif l.empty():
-					pass
-				else:
-					collect_file_scope = false
-			if !collect_file_scope:
-				var f_scope = convert_file_scope_to_cs(current_line, collected_scope)
-				is_global_scope = !f_scope.empty()
-				output += f_scope
+				elif not line_is_blank:
+					is_file_scope = false
+			if !is_file_scope:
+				var file_scope = convert_file_scope_to_cs(line_number, collected_scope, external_class_name)
+				is_global_scope = !file_scope.empty()
+				output += file_scope
+
+		csharp_indent_previous = csharp_indent_current
+		csharp_indent_current = gdscript_indent_current + (1 if is_global_scope else 0)
 		if !is_multiline:
-			indent += 1 if is_global_scope else 0
-			if indent < depth:
-				braces -= 1
-				output += "\t".repeat(braces) + "}\n"
-				local_vars.erase(depth)
-			elif indent > depth:
-				output += "\t".repeat(braces) + "{\n"
-				local_vars[indent] = {}
-				braces += 1
-			depth = indent
-			output += "\t".repeat(indent)
+			if csharp_indent_current < csharp_indent_previous:
+				var dedent: int = csharp_indent_previous - csharp_indent_current
+				while dedent > 0:
+					var _result: bool = local_vars.erase(braces)
+					braces -= 1
+					var index: int = output.strip_edges(false, true).length() + 1
+					output = output.left(index) + "\t".repeat(braces) + "}\n" + output.right(index)
+					dedent -= 1
+			elif csharp_indent_current > csharp_indent_previous:
+				var indent: int = csharp_indent_current - csharp_indent_previous
+				while indent > 0:
+					output += "\t".repeat(braces) + "{\n"
+					braces += 1
+					local_vars[braces] = {}
+					indent -= 1
+			output += "\t".repeat(braces)
+
 		is_multiline = false
 		if l.ends_with(";"):
 			l.erase(l.length() - 1, 1)
@@ -414,10 +429,18 @@ func generate_csharp(source: String) -> String:
 			comment = l.split("#")[1]
 			l = l.split("#")[0]
 		if Detector.is_declaration(l) || Detector.is_const_declaration(l):
-			var is_global_var = indent == 1 && is_global_scope
-			output += parse_declaration(current_line, is_global_var, l, \
-				global_scope_vars, local_vars[indent], local_vars, usings)
+			var is_global_var = braces == 1 && is_global_scope
+			output += parse_declaration(
+				line_number,
+				is_global_var,
+				l,
+				global_scope_vars,
+				local_vars[braces],
+				local_vars,
+				usings
+			)
 			l = ""
+
 		if Detector.is_function_declaration(l):
 			if Detector.is_overriding_virtual_function(l):
 				output += "public override "
@@ -429,40 +452,40 @@ func generate_csharp(source: String) -> String:
 				output += "static "
 			var retval := Parser.get_function_retval(l)
 			if retval.empty():
-				warn(current_line, "No return value provided. Assuming void. Use -> RETVAL to specify")
+				warn(line_number, "No return value provided. Assuming void. Use -> RETVAL to specify")
 				retval = "void"
 			output += retval + " "
 			var func_name := Parser.get_function_name_from_d(l)
 			if func_name.empty():
-				warn(current_line, "Expected function name")
+				warn(line_number, "Expected function name")
 				output += "?NAME?("
 			else:
 				output += Utility.pascal(func_name, Detector.is_virtual(func_name)) + "("
 			for arg in Parser.get_function_arguments(l):
 				if arg[1] == null:
-					warn(current_line, "No type provided. Consider type hinting with NAME:TYPE")
+					warn(line_number, "No type provided. Consider type hinting with NAME:TYPE")
 					output += "?TYPE? "
 				elif arg[1].empty():
-					warn(current_line, "Expected type")
+					warn(line_number, "Expected type")
 					output += "?TYPE? "
 				else:
 					output += arg[1] + " "
 
 				if arg[0].empty():
-					warn(current_line, "Expected argument name")
+					warn(line_number, "Expected argument name")
 					output += "?NAME?"
 				else:
 					if arg[0] in Utility.REMAP_VARIABLES:
 						output += Utility.REMAP_VARIABLES[arg[0]]
-						local_vars[indent][arg[0]] = [Utility.REMAP_VARIABLES[arg[0]], arg[1]]
+						local_vars[braces][arg[0]] = [Utility.REMAP_VARIABLES[arg[0]], arg[1]]
 					else:
 						output += arg[0]
-						local_vars[indent][arg[0]] = [arg[0], arg[1]]
+						local_vars[braces][arg[0]] = [arg[0], arg[1]]
 
 				if arg[2] == null:
 					pass # We ensure below is a String... Hacky tho
 				elif arg[2].empty():
-					warn(current_line, "Expected default value")
+					warn(line_number, "Expected default value")
 					output += " ?VALUE?"
 				else:
 					output += " = " + arg[2]
@@ -472,23 +495,23 @@ func generate_csharp(source: String) -> String:
 			output += ")"
 			l = ""
 		if Detector.is_while(l):
-			output += "while (%s)" % convert_statement(current_line, parser.parse_statement(current_line, convert_while(l)), \
+			output += "while (%s)" % convert_statement(line_number, parser.parse_statement(line_number, convert_while(l)), \
 				global_scope_vars, local_vars, usings, false)
 			l = ""
 		if Detector.is_for(l):
-			if Detector._is_foreach(l):
-				output += "foreach (var %s)" % convert_statement(current_line, parser.parse_statement(current_line, convert_foreach(l)), \
+			if Detector.is_foreach(l):
+				output += "foreach (var %s)" % convert_statement(line_number, parser.parse_statement(line_number, convert_foreach(l)), \
 					global_scope_vars, local_vars, usings, false)
 			else:
 				output += "for (%s)" % convert_for(l)
 			l = ""
 		if Detector.is_if(l):
-			output += "if (%s)" % convert_statement(current_line, parser.parse_statement(current_line, convert_if(l)), \
+			output += "if (%s)" % convert_statement(line_number, parser.parse_statement(line_number, convert_if(l)), \
 				global_scope_vars, local_vars, usings, false)
 			l = ""
 		if Detector.is_elif(l):
-			output += "else if (%s)" % convert_statement(current_line, \
-				parser.parse_statement(current_line, convert_elif(l)), \
+			output += "else if (%s)" % convert_statement(line_number, \
+				parser.parse_statement(line_number, convert_elif(l)), \
 				global_scope_vars, local_vars, usings, false)
 			l = ""
 		if Detector.is_else(l):
@@ -498,19 +521,21 @@ func generate_csharp(source: String) -> String:
 			is_multiline = true
 			l = l.left(l.length() - 2).strip_edges()
 		if !l.empty():
-			var debug_parse_result = parser.parse_statement(current_line, l)
+			var debug_parse_result = parser.parse_statement(line_number, l)
 			print(debug_parse_result)
-			output += convert_statement(current_line, parser.parse_statement(current_line, l), \
+			output += convert_statement(line_number, parser.parse_statement(line_number, l), \
 				global_scope_vars, local_vars, usings, !is_multiline)
 		if !comment.empty():
 			output += " //" + comment
 			comment = ""
 		if !is_multiline:
 			output += "\n"
-		#print("[%d] " % current_line, l)
+		#print("[%d] " % line_number, l)
+
 	while braces > 0:
-		output += "\t".repeat(braces - 1) + "}\n"
 		braces -= 1
+		output += "\t".repeat(braces) + "}\n"
+
 	var usings_str := ""
 	if is_global_scope:
 		for using in usings:

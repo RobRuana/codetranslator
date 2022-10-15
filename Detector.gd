@@ -11,7 +11,8 @@ extends Object
 ### 				Detectors 				  ###
 # Detectors are only meant to return a bool,	#
 # depending on the detected content.			#
-# Detectors may be used on complete lines		#
+# Detectors may be used on complete lines	#
+
 
 ## Returns true if string begins with as
 static func is_as(string: String) -> bool:
@@ -30,6 +31,7 @@ static func is_in(string: String) -> bool:
 ## Returns true if string is a built-in class
 static func is_builtin(string: String) -> bool:
 	return string.substr(0, string.find("(")).strip_edges() in Utility.BUILTIN_CLASSES
+
 
 ## Returns true if string begins with $
 static func is_getnode(string: String) -> bool:
@@ -132,7 +134,7 @@ static func is_private(string: String) -> bool:
 ## var x : Node
 ## var y := ""
 static func is_typed_declaration(string: String) -> bool:
-	return is_declaration(string) && Utility.find_not_in_string(string, ":") > 0
+	return (is_declaration(string) || is_const_declaration(string)) && Utility.find_not_in_string(string, ":") > 0
 
 
 ## Returns true if string starts with func
@@ -238,9 +240,9 @@ static func is_assignment(string: String) -> bool:
 
 
 ## Returns true if string contains a mathematical expression
-static func is_math(string: String) -> bool:
+static func is_binary_math(string: String) -> bool:
 	for op in Utility.MATH_OPERATORS:
-		var pos = Utility.find_not_in_string(string, op)
+		var pos = Utility.find_not_in_string(string, " " + op + " ")
 		if pos != -1:
 			return true
 	return false
