@@ -84,6 +84,8 @@ const BITWISE_OPERATORS = [
 
 ## Contains all method remaps (i.e. for methods using a namespace)
 const REMAP_METHODS = {
+	"ord": "char.GetNumericValue",
+
 	"assert": "Debug.Assert",
 
 	"bytes2var": "GD.Bytes2Var",
@@ -116,7 +118,6 @@ const REMAP_METHODS = {
 	"var2bytes": "GD.Var2Bytes",
 	"var2str": "GD.Var2Str",
 
-	"ord": "char.GetNumericValue",
 	"abs": "Mathf.Abs",
 	"acos": "Mathf.Acos",
 	"asin": "Mathf.Asin",
@@ -155,6 +156,9 @@ const REMAP_METHODS = {
 	"tan": "Mathf.Tan",
 	"tanh": "Mathf.Tanh",
 	"wrap": "Mathf.Wrap",
+
+	"is_instance_valid": "Object.IsInstanceValid",
+	"weakref": "Object.WeakRef",
 }
 
 

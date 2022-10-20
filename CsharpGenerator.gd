@@ -348,6 +348,10 @@ func parse_declaration(line: int, global_scope: bool, string: String, gsv, lsvi,
 	return result
 
 
+func parse_yield(line: int, global_scope: bool, string: String, gsv, lsvi, lsv, usings) -> String:
+	return string.replace("yield", "await ToSignal")
+
+
 ## Parses the source code and outputs the resulting C# Code
 func generate_csharp(source: String, external_class_name: String = "") -> String:
 	var output: String = ""
@@ -431,6 +435,18 @@ func generate_csharp(source: String, external_class_name: String = "") -> String
 		if Detector.is_declaration(l) || Detector.is_const_declaration(l):
 			var is_global_var = braces == 1 && is_global_scope
 			output += parse_declaration(
+				line_number,
+				is_global_var,
+				l,
+				global_scope_vars,
+				local_vars[braces],
+				local_vars,
+				usings
+			)
+			l = ""
+		if Detector.is_yield(l):
+			var is_global_var = braces == 1 && is_global_scope
+			output += parse_yield(
 				line_number,
 				is_global_var,
 				l,

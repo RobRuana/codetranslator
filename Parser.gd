@@ -279,7 +279,7 @@ func parse_statement(line: int, string: String) -> Array:
 			res.push_back(["nodepath", nodepath])
 			string = string.substr(nodepath.length() + 3)
 		elif Detector.is_constructor(string):
-			var dot = string.find(".")
+			var dot: int = string.find(".")
 			var brace_content = get_brace_content(string)
 			var end = brace_content.length()
 			res.push_back([

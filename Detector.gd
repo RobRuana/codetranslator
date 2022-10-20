@@ -80,6 +80,11 @@ static func is_const_declaration(string: String) -> bool:
 	return string.begins_with("const")
 
 
+## Returns true if string contains 'yield('
+static func is_yield(string: String) -> bool:
+	return string.find("yield(") > -1
+
+
 ## Returns true if line is a while loop
 static func is_while(string: String) -> bool:
 	return string.begins_with("while")
@@ -92,7 +97,7 @@ static func is_for(string: String) -> bool:
 
 ## Returns true if line is for loop and not has range keyword
 static func is_foreach(string: String) -> bool:
-	return string.find("range(") == -1
+	return string.begins_with("for") and string.find("range(") == -1
 
 
 ## Returns true if line is if
